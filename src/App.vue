@@ -85,6 +85,34 @@ function getCurrentDatePartsInJapanese(): { firstLine: string, secondLine: strin
   }
 }
 
+// Create a text mesh with the given parameters
+function createTextMesh(
+  text: string,
+  font: any,
+  material: THREE.Material,
+  size: number = 0.2,
+  depth: number = 0.2,
+  yPosition: number = 0,
+): THREE.Mesh {
+  const textGeometry = new TextGeometry(text, {
+    font,
+    size,
+    depth,
+    curveSegments: 5,
+    bevelEnabled: true,
+    bevelThickness: 0.03,
+    bevelSize: 0.02,
+    bevelOffset: 0,
+    bevelSegments: 4,
+  })
+
+  textGeometry.center()
+  const textMesh = new THREE.Mesh(textGeometry, material)
+  textMesh.position.y = yPosition
+
+  return textMesh
+}
+
 // Load textures and fonts
 function loadAssets() {
   // Textures
@@ -100,40 +128,12 @@ function loadAssets() {
     // Create material to be shared by both text meshes
     const material = new THREE.MeshMatcapMaterial({ matcap: matcapTexture })
 
-    // Create first line text
-    const firstLineGeometry = new TextGeometry(firstLine, {
-      font,
-      size: 0.2,
-      depth: 0.2,
-      curveSegments: 5,
-      bevelEnabled: true,
-      bevelThickness: 0.03,
-      bevelSize: 0.02,
-      bevelOffset: 0,
-      bevelSegments: 4,
-    })
-
-    firstLineGeometry.center()
-    const firstLineText = new THREE.Mesh(firstLineGeometry, material)
-    firstLineText.position.y = 0.2 // Position above center
+    // Create and add first line text
+    const firstLineText = createTextMesh(firstLine, font, material, 0.2, 0.2, 0.2)
     scene.add(firstLineText)
 
-    // Create second line text
-    const secondLineGeometry = new TextGeometry(secondLine, {
-      font,
-      size: 0.5,
-      depth: 0.2,
-      curveSegments: 5,
-      bevelEnabled: true,
-      bevelThickness: 0.03,
-      bevelSize: 0.02,
-      bevelOffset: 0,
-      bevelSegments: 4,
-    })
-
-    secondLineGeometry.center()
-    const secondLineText = new THREE.Mesh(secondLineGeometry, material)
-    secondLineText.position.y = -0.4 // Position below center
+    // Create and add second line text
+    const secondLineText = createTextMesh(secondLine, font, material, 0.5, 0.2, -0.4)
     scene.add(secondLineText)
 
     // Add donuts after adding both text elements
