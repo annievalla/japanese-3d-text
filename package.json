@@ -9,6 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "lil-gui": "^0.20.0",
+    "three": "^0.175.0",
     "vue": "^3.5.13"
   },
   "devDependencies": {
