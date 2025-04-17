@@ -6,9 +6,18 @@ import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js'
 import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js'
 import { onMounted, ref } from 'vue'
 
+// State and references
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const donutRotations = new Map()
 
+// Scene objects
+let scene: THREE.Scene
+let camera: THREE.PerspectiveCamera
+let renderer: THREE.WebGLRenderer
+let controls: OrbitControls
+let clock: THREE.Clock
+
+// Creates donuts and adds them to the scene
 function addDonuts(nbDonuts: number, material: THREE.MeshMatcapMaterial, scene: THREE.Scene) {
   const donutGeometry = new THREE.TorusGeometry(0.35, 0.2, 20, 45)
   for (let i = 0; i < nbDonuts; i++) {
@@ -23,36 +32,56 @@ function addDonuts(nbDonuts: number, material: THREE.MeshMatcapMaterial, scene: 
     const randomScale = Math.random()
     donut.scale.set(randomScale, randomScale, randomScale)
 
-    // Stocker les vitesses de rotation aléatoires pour ce donut
+    // Store random rotation speeds for this donut
     donutRotations.set(donut, {
       x: Math.random() * 0.5 + 0.3,
-      y: Math.random() * 0.5 + 0.3, // Entre 0.3 et 0.8
+      y: Math.random() * 0.5 + 0.3, // Between 0.3 and 0.8
     })
 
     scene.add(donut)
   }
 }
 
-onMounted(() => {
+// Initialize the scene, camera, and renderer
+function initializeScene() {
+  scene = new THREE.Scene()
+
+  const sizes = {
+    width: window.innerWidth,
+    height: window.innerHeight,
+  }
+
+  camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100)
+  camera.position.x = 1
+  camera.position.y = 1
+  camera.position.z = 2
+  scene.add(camera)
+
   if (!canvasRef.value)
     return
 
-  // Debug
-  const _gui = new GUI()
+  renderer = new THREE.WebGLRenderer({
+    canvas: canvasRef.value,
+    antialias: true,
+  })
+  renderer.setSize(sizes.width, sizes.height)
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 
-  // Scene
-  const scene = new THREE.Scene()
+  controls = new OrbitControls(camera, canvasRef.value)
+  controls.enableDamping = true
 
+  clock = new THREE.Clock()
+}
+
+// Load textures and fonts
+function loadAssets() {
   // Textures
   const textureLoader = new THREE.TextureLoader()
   const matcapTexture = textureLoader.load('/src/assets/textures/matcaps/8.png')
   matcapTexture.colorSpace = THREE.SRGBColorSpace
 
-  /**
-   * Fonts
-   */
+  // Fonts
   const fontLoader = new FontLoader()
-
   fontLoader.load('/src/assets/fonts/Noto_Sans_JP_SemiBold_Regular.json', (font) => {
     const textGeometry = new TextGeometry('こんにちは', {
       font,
@@ -73,42 +102,16 @@ onMounted(() => {
     addDonuts(45, material, scene)
     scene.add(text)
   })
+}
 
-  /**
-   * Sizes
-   */
-  const sizes = {
-    width: window.innerWidth,
-    height: window.innerHeight,
-  }
-
-  /**
-   * Camera
-   */
-  const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100)
-  camera.position.x = 1
-  camera.position.y = 1
-  camera.position.z = 2
-  scene.add(camera)
-
-  // Controls
-  const controls = new OrbitControls(camera, canvasRef.value)
-  controls.enableDamping = true
-
-  /**
-   * Renderer
-   */
-  const renderer = new THREE.WebGLRenderer({
-    canvas: canvasRef.value,
-    antialias: true,
-  })
-  renderer.setSize(sizes.width, sizes.height)
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-
+// Setup event listeners
+function setupEventListeners() {
   window.addEventListener('resize', () => {
     // Update sizes
-    sizes.width = window.innerWidth
-    sizes.height = window.innerHeight
+    const sizes = {
+      width: window.innerWidth,
+      height: window.innerHeight,
+    }
 
     // Update camera
     camera.aspect = sizes.width / sizes.height
@@ -118,12 +121,10 @@ onMounted(() => {
     renderer.setSize(sizes.width, sizes.height)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
   })
+}
 
-  /**
-   * Animate
-   */
-  const clock = new THREE.Clock()
-
+// Animation loop
+function animate() {
   const tick = () => {
     const elapsedTime = clock.getElapsedTime()
 
@@ -133,12 +134,12 @@ onMounted(() => {
     // Animate objects
     scene.traverse((object) => {
       if (object instanceof THREE.Mesh && object.geometry instanceof THREE.TorusGeometry) {
-        // Calculer la distance entre le donut et la caméra
+        // Calculate the distance between the donut and the camera
         const distance = object.position.distanceTo(camera.position)
 
-        // Animer uniquement les donuts proches (moins de 5 unités)
+        // Animate only the donuts close to the camera
         if (distance < 7) {
-          // Utiliser les vitesses de rotation uniques pour ce donut
+          // Use the unique rotation speeds for this donut
           const rotations = donutRotations.get(object)
           if (rotations) {
             object.rotation.x = elapsedTime * rotations.x
@@ -146,7 +147,7 @@ onMounted(() => {
           }
         }
         else {
-          // Réinitialiser la rotation pour les donuts éloignés
+          // Reset the rotation for the distant donuts
           object.rotation.x = 0
           object.rotation.y = 0
         }
@@ -161,6 +162,20 @@ onMounted(() => {
   }
 
   tick()
+}
+
+// Initialize the scene when component is mounted
+onMounted(() => {
+  if (!canvasRef.value)
+    return
+
+  // Initialize GUI but not using it for now
+  const _gui = new GUI()
+
+  initializeScene()
+  loadAssets()
+  setupEventListeners()
+  animate()
 })
 </script>
 
