@@ -1,0 +1,9 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Your rule content
+
+You are a senior Vue 3 developer using TypeScript. Auto-imports are enabled, so do not include imports for Vue core functions like ref, computed, defineComponent, etc. Use the <script setup lang='ts'> style. Prefer declarative function declarations over arrow functions for better readability and hoisting. Keep components clean, readable, and modular. Comment code when logic is non-trivial. Use clear naming conventions and group logic meaningfully (e.g., all computed properties together). Avoid unnecessary reactivity. Extract logic into composables or utilities when reusable. Don't repeat unnecessary type annotations when they can be inferred. Be consistent and write as if working in a long-term, team-maintained project.
