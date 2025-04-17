@@ -73,6 +73,18 @@ function initializeScene() {
   clock = new THREE.Clock()
 }
 
+// Get current date parts in Japanese
+function getCurrentDatePartsInJapanese(): { firstLine: string, secondLine: string } {
+  const today = new Date()
+  const month = today.getMonth() + 1 // getMonth is 0-indexed
+  const day = today.getDate()
+
+  return {
+    firstLine: '今日は',
+    secondLine: `${month}月${day}日`,
+  }
+}
+
 // Load textures and fonts
 function loadAssets() {
   // Textures
@@ -83,7 +95,31 @@ function loadAssets() {
   // Fonts
   const fontLoader = new FontLoader()
   fontLoader.load('/src/assets/fonts/Noto_Sans_JP_SemiBold_Regular.json', (font) => {
-    const textGeometry = new TextGeometry('こんにちは', {
+    const { firstLine, secondLine } = getCurrentDatePartsInJapanese()
+
+    // Create material to be shared by both text meshes
+    const material = new THREE.MeshMatcapMaterial({ matcap: matcapTexture })
+
+    // Create first line text
+    const firstLineGeometry = new TextGeometry(firstLine, {
+      font,
+      size: 0.2,
+      depth: 0.2,
+      curveSegments: 5,
+      bevelEnabled: true,
+      bevelThickness: 0.03,
+      bevelSize: 0.02,
+      bevelOffset: 0,
+      bevelSegments: 4,
+    })
+
+    firstLineGeometry.center()
+    const firstLineText = new THREE.Mesh(firstLineGeometry, material)
+    firstLineText.position.y = 0.2 // Position above center
+    scene.add(firstLineText)
+
+    // Create second line text
+    const secondLineGeometry = new TextGeometry(secondLine, {
       font,
       size: 0.5,
       depth: 0.2,
@@ -95,12 +131,13 @@ function loadAssets() {
       bevelSegments: 4,
     })
 
-    textGeometry.center()
+    secondLineGeometry.center()
+    const secondLineText = new THREE.Mesh(secondLineGeometry, material)
+    secondLineText.position.y = -0.4 // Position below center
+    scene.add(secondLineText)
 
-    const material = new THREE.MeshMatcapMaterial({ matcap: matcapTexture })
-    const text = new THREE.Mesh(textGeometry, material)
+    // Add donuts after adding both text elements
     addDonuts(45, material, scene)
-    scene.add(text)
   })
 }
 
