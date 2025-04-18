@@ -8,7 +8,6 @@ import { onMounted, ref } from 'vue'
 
 // State and references
 const canvasRef = ref<HTMLCanvasElement | null>(null)
-const donutRotations = new Map()
 
 // Scene objects
 let scene: THREE.Scene
@@ -31,13 +30,6 @@ function addDonuts(nbDonuts: number, material: THREE.MeshMatcapMaterial, scene: 
 
     const randomScale = Math.random()
     donut.scale.set(randomScale, randomScale, randomScale)
-
-    // Store random rotation speeds for this donut
-    donutRotations.set(donut, {
-      x: Math.random() * 0.5 + 0.3,
-      y: Math.random() * 0.5 + 0.3, // Between 0.3 and 0.8
-    })
-
     scene.add(donut)
   }
 }
@@ -52,9 +44,10 @@ function initializeScene() {
   }
 
   camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100)
-  camera.position.x = 1
-  camera.position.y = 1
+  camera.position.x = 0.34
+  camera.position.y = -1.5
   camera.position.z = 2
+  camera.lookAt(new THREE.Vector3(0, 0, 0))
   scene.add(camera)
 
   if (!canvasRef.value)
@@ -130,11 +123,15 @@ function loadAssets() {
 
     // Create and add first line text
     const firstLineText = createTextMesh(firstLine, font, material, 0.2, 0.2, 0.2)
-    scene.add(firstLineText)
 
     // Create and add second line text
     const secondLineText = createTextMesh(secondLine, font, material, 0.5, 0.2, -0.4)
-    scene.add(secondLineText)
+
+    // Create parent object to hold both text meshes for combined animation
+    const textGroup = new THREE.Group()
+    textGroup.add(firstLineText)
+    textGroup.add(secondLineText)
+    scene.add(textGroup)
 
     // Add donuts after adding both text elements
     addDonuts(45, material, scene)
@@ -168,26 +165,12 @@ function animate() {
     // Update controls
     controls.update()
 
-    // Animate objects
+    // Find and animate the text group
     scene.traverse((object) => {
-      if (object instanceof THREE.Mesh && object.geometry instanceof THREE.TorusGeometry) {
-        // Calculate the distance between the donut and the camera
-        const distance = object.position.distanceTo(camera.position)
-
-        // Animate only the donuts close to the camera
-        if (distance < 7) {
-          // Use the unique rotation speeds for this donut
-          const rotations = donutRotations.get(object)
-          if (rotations) {
-            object.rotation.x = elapsedTime * rotations.x
-            object.rotation.y = elapsedTime * rotations.y
-          }
-        }
-        else {
-          // Reset the rotation for the distant donuts
-          object.rotation.x = 0
-          object.rotation.y = 0
-        }
+      if (object instanceof THREE.Group) {
+        // Apply gentle tilting animation to simulate floating on water
+        object.rotation.x = Math.sin(elapsedTime * 0.3) * 0.4
+        object.rotation.z = Math.sin(elapsedTime * 0.5) * 0.3
       }
     })
 
