@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import gsap from 'gsap'
 import GUI from 'lil-gui'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
@@ -15,6 +16,9 @@ let camera: THREE.PerspectiveCamera
 let renderer: THREE.WebGLRenderer
 let controls: OrbitControls
 let clock: THREE.Clock
+
+// Camera animation state
+let cameraAnimationComplete = false
 
 // Creates donuts and adds them to the scene
 function addDonuts(nbDonuts: number, material: THREE.MeshMatcapMaterial, scene: THREE.Scene) {
@@ -43,10 +47,13 @@ function initializeScene() {
     height: window.innerHeight,
   }
 
-  camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100)
-  camera.position.x = 0.34
-  camera.position.y = -1.5
-  camera.position.z = 2
+  // Create camera far away from scene
+  camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 1000)
+
+  // Start camera from very far away
+  camera.position.x = 0
+  camera.position.y = 0
+  camera.position.z = 70 // Start far
   camera.lookAt(new THREE.Vector3(0, 0, 0))
   scene.add(camera)
 
@@ -60,10 +67,36 @@ function initializeScene() {
   renderer.setSize(sizes.width, sizes.height)
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 
+  // Initialize controls
   controls = new OrbitControls(camera, canvasRef.value)
+  controls.enabled = false // Disable during animation
   controls.enableDamping = true
 
   clock = new THREE.Clock()
+
+  // Start camera animation
+  startCameraAnimation()
+}
+
+// Animate camera from far away to close-up
+function startCameraAnimation() {
+  // Timeline for sequenced animation
+  const timeline = gsap.timeline({
+    onComplete: () => {
+      // Enable controls after animation completes
+      cameraAnimationComplete = true
+      controls.enabled = true
+    },
+  })
+
+  // Single smooth movement with lookAt in the animation loop
+  timeline.to(camera.position, {
+    x: 0.34,
+    y: -1.5,
+    z: 2,
+    duration: 4,
+    ease: 'power3.inOut', // Smooth acceleration and deceleration
+  })
 }
 
 // Get current date parts in Japanese
@@ -121,16 +154,10 @@ function loadAssets() {
     // Create material to be shared by both text meshes
     const material = new THREE.MeshMatcapMaterial({ matcap: matcapTexture })
 
-    // Create and add first line text
-    const firstLineText = createTextMesh(firstLine, font, material, 0.2, 0.2, 0.2)
-
-    // Create and add second line text
-    const secondLineText = createTextMesh(secondLine, font, material, 0.5, 0.2, -0.4)
-
     // Create parent object to hold both text meshes for combined animation
     const textGroup = new THREE.Group()
-    textGroup.add(firstLineText)
-    textGroup.add(secondLineText)
+    textGroup.add(createTextMesh(firstLine, font, material, 0.2, 0.2, 0.2))
+    textGroup.add(createTextMesh(secondLine, font, material, 0.5, 0.2, -0.4))
     scene.add(textGroup)
 
     // Add donuts after adding both text elements
@@ -162,8 +189,13 @@ function animate() {
   const tick = () => {
     const elapsedTime = clock.getElapsedTime()
 
-    // Update controls
-    controls.update()
+    // Always look at the center during animation to keep text centered
+    camera.lookAt(new THREE.Vector3(0, 0, 0))
+
+    // Update controls only after animation is complete
+    if (cameraAnimationComplete) {
+      controls.update()
+    }
 
     // Find and animate the text group
     scene.traverse((object) => {
