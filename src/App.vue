@@ -135,23 +135,126 @@ function loadAssets(): void {
 
     scene.add(textGroup)
 
-    // Add donuts after adding text
-    addDonuts(45, material, scene)
+    // Calculate bounding box for the text group
+    const textBoundingBox = calculateGroupBoundingBox(textGroup)
+
+    // Add donuts after adding text, respecting the text's bounds
+    addDonuts(45, material, scene, textBoundingBox)
   })
 }
 
-// Creates donuts and adds them to the scene
-function addDonuts(nbDonuts: number, material: THREE.MeshMatcapMaterial, scene: THREE.Scene): void {
+// Calculate the bounding box for a group with all its children
+function calculateGroupBoundingBox(group: THREE.Group): THREE.Box3 {
+  const boundingBox = new THREE.Box3()
+
+  // Initialize with the first child to avoid empty bounding box
+  if (group.children.length > 0) {
+    // Force matrix updates to ensure accurate geometry
+    group.updateMatrixWorld(true)
+
+    // Initialize a new bounding box
+    const tempBox = new THREE.Box3()
+
+    // Compute bounding box that encompasses all children
+    group.traverse((object) => {
+      if (object instanceof THREE.Mesh && object.geometry) {
+        // For meshes, compute the bounding box of the geometry
+        object.geometry.computeBoundingBox()
+
+        // Get bounding box in world space
+        tempBox.copy(object.geometry.boundingBox!).applyMatrix4(object.matrixWorld)
+
+        // Expand the group's bounding box
+        boundingBox.union(tempBox)
+      }
+    })
+  }
+
+  return boundingBox
+}
+
+function displayZoneWireframe(zone: { minX: number, minY: number, minZ: number, maxX: number, maxY: number, maxZ: number }): void {
+  const boxGeometry = new THREE.BoxGeometry(
+    zone.maxX - zone.minX,
+    zone.maxY - zone.minY,
+    zone.maxZ - zone.minZ,
+  )
+  const boxMaterial = new THREE.MeshBasicMaterial({ color: 0xFF0000, wireframe: true })
+  const boxMesh = new THREE.Mesh(boxGeometry, boxMaterial)
+  boxMesh.position.set(
+    (zone.minX + zone.maxX) / 2,
+    (zone.minY + zone.maxY) / 2,
+    (zone.minZ + zone.maxZ) / 2,
+  )
+  scene.add(boxMesh)
+}
+
+// Creates donuts and adds them to the scene, avoiding the text area
+function addDonuts(
+  nbDonuts: number,
+  material: THREE.MeshMatcapMaterial,
+  scene: THREE.Scene,
+  textBounds: THREE.Box3,
+): void {
   const donutGeometry = new THREE.TorusGeometry(0.35, 0.2, 20, 45)
+
+  // Add some margin around the text bounding box
+  const margin = 0.3
+  const exclusionZone = {
+    minX: textBounds.min.x - margin,
+    maxX: textBounds.max.x + margin,
+    minY: textBounds.min.y - margin,
+    maxY: textBounds.max.y + margin,
+    minZ: textBounds.min.z - margin,
+    maxZ: textBounds.max.z + margin,
+  }
+
+  // Function to check if a position is outside the exclusion zone
+  const isOutsideExclusionZone = (x: number, y: number, z: number): boolean => {
+    return (
+      x < exclusionZone.minX
+      || x > exclusionZone.maxX
+      || y < exclusionZone.minY
+      || y > exclusionZone.maxY
+      || z < exclusionZone.minZ
+      || z > exclusionZone.maxZ
+    )
+  }
+
+  // For debugging: create a wireframe box showing the exclusion zone
+  // Uncomment to visualize the exclusion zone
+  // displayZoneWireframe(exclusionZone)
+
   for (let i = 0; i < nbDonuts; i++) {
     const donut = new THREE.Mesh(donutGeometry, material)
-    donut.position.x = (Math.random() - 0.5) * 10
-    donut.position.y = (Math.random() - 0.5) * 10
-    donut.position.z = (Math.random() - 0.5) * 10
 
+    // Generate random position
+    let x = (Math.random() - 0.5) * 10
+    let y = (Math.random() - 0.5) * 10
+    let z = (Math.random() - 0.5) * 10
+
+    // Ensure donut is outside the exclusion zone
+    // Try up to 10 times to find a valid position
+    let attempts = 0
+    const maxAttempts = 10
+
+    while (!isOutsideExclusionZone(x, y, z) && attempts < maxAttempts) {
+      x = (Math.random() - 0.5) * 10
+      y = (Math.random() - 0.5) * 10
+      z = (Math.random() - 0.5) * 10
+      attempts++
+    }
+
+    // Position the donut
+    donut.position.x = x
+    donut.position.y = y
+    donut.position.z = z
+
+    // Random rotation
     donut.rotation.x = Math.random() * Math.PI
     donut.rotation.y = Math.random() * Math.PI
 
+    // Random scaling
     const randomScale = Math.random()
     donut.scale.set(randomScale, randomScale, randomScale)
 
