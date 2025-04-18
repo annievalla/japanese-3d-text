@@ -63,6 +63,8 @@ declare global {
   const useRouter: typeof import('vue-router')['useRouter']
   const useSlots: typeof import('vue')['useSlots']
   const useTemplateRef: typeof import('vue')['useTemplateRef']
+  const useTextAnimation: typeof import('./composables/useTextAnimation')['useTextAnimation']
+  const useThreeScene: typeof import('./composables/useThreeScene')['useThreeScene']
   const watch: typeof import('vue')['watch']
   const watchEffect: typeof import('vue')['watchEffect']
   const watchPostEffect: typeof import('vue')['watchPostEffect']
@@ -73,6 +75,12 @@ declare global {
   // @ts-ignore
   export type { Component, Slot, Slots, ComponentPublicInstance, ComputedRef, DirectiveBinding, ExtractDefaultPropTypes, ExtractPropTypes, ExtractPublicPropTypes, InjectionKey, PropType, Ref, MaybeRef, MaybeRefOrGetter, VNode, WritableComputedRef } from 'vue'
   import('vue')
+  // @ts-ignore
+  export type { FloatingTextAnimationOptions } from './composables/useTextAnimation'
+  import('./composables/useTextAnimation')
+  // @ts-ignore
+  export type { ThreeSceneOptions } from './composables/useThreeScene'
+  import('./composables/useThreeScene')
 }
 
 // for vue template auto import
@@ -137,6 +145,8 @@ declare module 'vue' {
     readonly useRouter: UnwrapRef<typeof import('vue-router')['useRouter']>
     readonly useSlots: UnwrapRef<typeof import('vue')['useSlots']>
     readonly useTemplateRef: UnwrapRef<typeof import('vue')['useTemplateRef']>
+    readonly useTextAnimation: UnwrapRef<typeof import('./composables/useTextAnimation')['useTextAnimation']>
+    readonly useThreeScene: UnwrapRef<typeof import('./composables/useThreeScene')['useThreeScene']>
     readonly watch: UnwrapRef<typeof import('vue')['watch']>
     readonly watchEffect: UnwrapRef<typeof import('vue')['watchEffect']>
     readonly watchPostEffect: UnwrapRef<typeof import('vue')['watchPostEffect']>
